@@ -86,14 +86,9 @@ impl ThreadPool {
 
         for id in 0..size {
             let receiver: Receiver<Job> = receiver.clone();
-            let thread = thread::spawn(move || loop {
-                match receiver.recv() {
-                    Ok(job) => {
-                        job();
-                    }
-                    Err(_) => {
-                        break;
-                    }
+            let thread = thread::spawn(move || {
+                while let Ok(job) = receiver.recv() {
+                    job();
                 }
             });
 

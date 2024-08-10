@@ -41,36 +41,29 @@ impl<K: Eq + Hash + Clone, V: Clone> Cache<K, V> {
     ///
     /// [`Entry`]: https://doc.rust-lang.org/stable/std/collections/hash_map/struct.HashMap.html#method.entry
     pub fn get_or_insert_with<F: FnOnce(K) -> V>(&self, key: K, f: F) -> V {
-        loop {
-            let value_arc_option = {
-                let read_map = self.inner.read().unwrap();
-                read_map.get(&key).cloned()
-            };
+        let value_arc_option = {
+            let read_map = self.inner.read().unwrap();
+            read_map.get(&key).cloned()
+        };
 
-            if let Some(value_arc) = value_arc_option {
-                match value_arc.try_lock() {
-                    Ok(mut value_guard) => {
-                        if let Some(ref value) = *value_guard {
-                            return value.clone();
-                        }
-                        break;
-                    }
-                    Err(_) => {
-                        continue;
-                    }
-                };
-            } else {
-                break;
-            }
+        if let Some(cloned_value) = value_arc_option.and_then(|value_arc| {
+            value_arc
+                .lock()
+                .ok()
+                .and_then(|value_guard| value_guard.as_ref().cloned())
+        }) {
+            return cloned_value;
         }
 
-        let mut write_map = self.inner.write().unwrap();
-        let value = write_map
-            .entry(key.clone())
-            .or_insert_with(|| Arc::new(Mutex::new(None)))
-            .clone();
+        let value = {
+            let mut write_map = self.inner.write().unwrap();
+            write_map
+                .entry(key.clone())
+                .or_insert_with(|| Arc::new(Mutex::new(None)))
+                .clone()
+        };
+
         let mut value_guard = value.lock().unwrap();
-        drop(write_map);
 
         if value_guard.is_none() {
             *value_guard = Some(f(key));
