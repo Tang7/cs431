@@ -1,7 +1,9 @@
 //! Split-ordered linked list.
 
 use core::mem::{self, MaybeUninit};
-use core::sync::atomic::{AtomicUsize, Ordering::*};
+use core::sync::atomic::AtomicUsize;
+use core::sync::atomic::Ordering::*;
+
 use crossbeam_epoch::{Guard, Owned};
 use cs431::lockfree::list::{Cursor, List, Node};
 

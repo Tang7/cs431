@@ -2,9 +2,10 @@ use std::cmp::Ordering::*;
 use std::mem::{self, ManuallyDrop};
 use std::sync::atomic::Ordering;
 
-use crate::ConcurrentSet;
 use crossbeam_epoch::{pin, Atomic, Guard, Owned, Shared};
 use cs431::lock::seqlock::{ReadGuard, SeqLock};
+
+use crate::ConcurrentSet;
 
 #[derive(Debug)]
 struct Node<T> {
